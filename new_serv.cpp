@@ -73,38 +73,39 @@ string rs;
 ss >> rs;
 cout << "Requested Resource: " << rs << endl;
 
+//determine file type of requested resource
+struct stat filestat;
 
-/*struct stat filestat;
-
-if(stat(rs, &filestat)){
-	cout << "ERROR in stat\n";
+if(stat(rs.c_str(), &filestat)){
+	cout << "ERROR in stat" << endl;
 	//return a canned 404 response
 	//with 404 headers and body
 }
 if(S_ISREG(filestat.st_mode)){
-	cout << argv[1] << " is a regular file \n";
-	cout << "file size = " << filestat.st_size  << "\n";
+	cout << rs << " is a regular file" << endl;
+	cout << "file size = " << filestat.st_size  << endl;
 	//format headers
 	//read file
 	//send it to client
 }
 if(S_ISDIR(filestat.st_mode)){
-	cout << argv[1] << " si a directory \n";
+	cout << rs << " is a directory" << endl;
 	//look for index.html (run stat function again)
-	if(stat(rs+"/index.html", &filestat)){
+	if(stat((rs+"/index.html").c_str(), &filestat)){
 	//index doesn't exist!
 	//read dir listing
 	//generate html
-	/send appropriate headers
+	//send appropriate headers
 	//and body to client
 }
 else{
+	cout << "Found index.html in directory" << endl;
 	//format headers
 	//read index.html
 	//send all to client
 }
 }
-*/
+
 
 
 
