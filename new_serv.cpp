@@ -101,7 +101,7 @@ if(S_ISREG(filestat.st_mode)){
 	char pBuffer[BUFFER_SIZE];
    	memset(pBuffer, 0, sizeof(pBuffer));
 	int file_size = get_file_size(rs);
-        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Lengh: %d\r\n\r\n", file_size);
+        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/gif\r\nContent-Lengh: %d\r\n\r\n", file_size);
 	
         int write_result = write(hSocket, pBuffer, strlen(pBuffer));
         if(write_result==SOCKET_ERROR){
