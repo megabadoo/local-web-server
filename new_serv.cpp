@@ -77,6 +77,8 @@ string rs;
 ss >> rs;
 cout << "Requested Resource: " << rs << endl;
 
+
+
 //for now, hardcode the prepended path into rs
 string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
 rs = prepended + rs;
@@ -97,19 +99,30 @@ if(S_ISREG(filestat.st_mode)){
 	//read file
 	//send it to client
 	char pBuffer[BUFFER_SIZE];
-   	 memset(pBuffer, 0, sizeof(pBuffer));
+   	memset(pBuffer, 0, sizeof(pBuffer));
 	int file_size = get_file_size(rs);
-        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/jpg\r\nContent-Lengh: %d\r\n\r\n", file_size);
-//alwasys check system calls
-        write(hSocket, pBuffer, strlen(pBuffer));
-        FILE* fp = fopen(rs.c_str(), "r");
+        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Lengh: %d\r\n\r\n", file_size);
+	
+        int write_result = write(hSocket, pBuffer, strlen(pBuffer));
+        if(write_result==SOCKET_ERROR){
+		cout << "Error writing" << endl;
+		exit(0);
+	}
+	FILE* fp = fopen(rs.c_str(), "r");
 
         char* buffer = (char*)malloc(file_size);
-        fread(buffer, file_size, 1, fp);
-//check above
+        
+	int file_read_result = fread(buffer, file_size, 1, fp);
+	if(file_read_result == -1){
+		cout << "Error reading from file" << endl;
+		exit(0);
+	}
 
-        write(hSocket, buffer, file_size);
-
+        write_result = write(hSocket, buffer, file_size);
+	if(write_result==SOCKET_ERROR){
+                cout << "Error writing" << endl;
+                exit(0);
+        }
 }
 
 if(S_ISDIR(filestat.st_mode)){
@@ -164,11 +177,11 @@ else{
 
 	shutdown(hSocket, SHUT-RDWR);
 	close(hSocket);*/
-	string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 8\r\n\r\nHeyGuys!";
+//	string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 8\r\n\r\nHeyGuys!";
         /* number returned by read() and write() is the number of bytes
         ** read or written, with -1 being that an error occured
         ** write what we received back to the server */
-        write(hSocket,msg.c_str(),msg.length());
+  //      write(hSocket,msg.c_str(),msg.length());
 
 
 
