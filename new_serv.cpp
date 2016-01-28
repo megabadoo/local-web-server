@@ -47,7 +47,7 @@ int get_file_size(string path){
 	return filestat.st_size;
 }
 
-void serve(int hSocket){
+void serve(int hSocket, string dir){
 
 	string line;
 	vector<char*> headers;
@@ -80,8 +80,7 @@ if(rs.compare("/favicon.ico")==0){
 
 string original_rs = rs;
 //for now, hardcode the prepended path into rs
-string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
-rs = prepended + rs;
+rs = dir + rs;
 
 //determine file type of requested resource
 struct stat filestat;
@@ -171,6 +170,8 @@ else if(S_ISDIR(filestat.st_mode)){
 	cout << rs << " is a directory" << endl;
 	if(rs.find_last_of("/")!=rs.length()-1)
 		rs += "/";
+	if(original_rs.find_last_of("/")!=original_rs.length()-1)
+                original_rs += "/";
 	cout << rs << " is a directory with a slash" << endl;
 	//look for index.html (run stat function again)
 	if(stat((rs+"index.html").c_str(), &filestat)){
@@ -191,7 +192,7 @@ else if(S_ISDIR(filestat.st_mode)){
         if(x>1){
 	//prepend requested resource
         msg+="<li><a href=\"";
-	msg += original_rs + "/";
+	msg += original_rs;
 	msg+= dp->d_name;
 	msg+= "\">";
 	msg+=dp->d_name;
@@ -314,15 +315,17 @@ int main(int argc, char* argv[])
     int nAddressSize=sizeof(struct sockaddr_in);
     char pBuffer[BUFFER_SIZE];
     int nHostPort;
+	string dir;
 
-    if(argc < 2)
+    if(argc < 3)
       {
-        printf("\nUsage: server host-port\n");
+        printf("\nUsage: server host-port directory\n");
         return 0;
       }
     else
       {
         nHostPort=atoi(argv[1]);
+	dir = argv[2];
       }
 
     printf("\nStarting server");
@@ -383,6 +386,6 @@ setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
         hSocket=accept(hServerSocket,(struct sockaddr*)&Address,(socklen_t *)&nAddressSize);
-	serve(hSocket);
+	serve(hSocket, dir);
 	}
 }
