@@ -81,6 +81,26 @@ if(rs.compare("/favicon.ico")==0){
 	return;
 }
 
+//determine content-type
+string extension = rs.substr(rs.find_last_of("."));
+transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+string contentType="";
+
+cout << "EXTENSION: " << extension << endl;
+if(extension.compare(".html")==0){
+	contentType = "text/html";
+	cout << "HTML extension" << endl;
+}
+else if(extension.compare(".jpg")==0 || extension.compare(".jpeg")==0){
+	contentType = "image/jpg";
+}
+else if(extension.compare(".gif")==0){
+	contentType = "image/gif";
+}
+else{
+	contentType = "text/plain";
+}
+
 //for now, hardcode the prepended path into rs
 string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
 rs = prepended + rs;
@@ -103,7 +123,7 @@ if(S_ISREG(filestat.st_mode)){
 	char pBuffer[BUFFER_SIZE];
    	memset(pBuffer, 0, sizeof(pBuffer));
 	int file_size = get_file_size(rs);
-        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/gif\r\nContent-Lengh: %d\r\n\r\n", file_size);
+        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Lengh: %d\r\n\r\n", contentType.c_str(), file_size);
 	
         int write_result = write(hSocket, pBuffer, strlen(pBuffer));
         if(write_result==SOCKET_ERROR){
