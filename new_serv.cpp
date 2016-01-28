@@ -87,10 +87,36 @@ struct stat filestat;
 
 if(stat(rs.c_str(), &filestat)){
 	cout << "ERROR in stat" << endl;
+	rs = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/404.html";
 	//return a canned 404 response
 	//with 404 headers and body
+	 char pBuffer[BUFFER_SIZE];
+        memset(pBuffer, 0, sizeof(pBuffer));
+        int file_size = get_file_size(rs);
+        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Lengh: %d\r\n\r\n", file_size);
+
+        int write_result = write(hSocket, pBuffer, strlen(pBuffer));
+        if(write_result==SOCKET_ERROR){
+                cout << "Error writing" << endl;
+                exit(0);
+        }
+        FILE* fp = fopen(rs.c_str(), "r");
+
+        char* buffer = (char*)malloc(file_size);
+
+        int file_read_result = fread(buffer, file_size, 1, fp);
+        if(file_read_result == -1){
+                cout << "Error reading from file" << endl;
+                exit(0);
+        }
+
+        write_result = write(hSocket, buffer, file_size);
+        if(write_result==SOCKET_ERROR){
+                cout << "Error writing" << endl;
+                exit(0);
+        }
 }
-if(S_ISREG(filestat.st_mode)){
+else if(S_ISREG(filestat.st_mode)){
 
 //determine content-type
 string extension = rs.substr(rs.find_last_of("."));
@@ -140,7 +166,7 @@ else{
         }
 }
 
-if(S_ISDIR(filestat.st_mode)){
+else if(S_ISDIR(filestat.st_mode)){
 	cout << rs << " is a directory" << endl;
 	//look for index.html (run stat function again)
 	if(stat((rs+"index.html").c_str(), &filestat)){
