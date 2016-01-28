@@ -55,12 +55,9 @@ void serve(int hSocket){
 	for(int i=0; i<headers.size(); i++){
 		string l(headers[i]);
 		if(l.find("GET")!=std::string::npos){
-		cout << "FOUND GET LINE!" << endl;
-		cout << headers[i] << endl;
-		line = l;
+			line = l;
 		}
 	}
-	cout << "**********" << endl;
 
 
 	//set content type and length
@@ -75,36 +72,15 @@ stringstream ss;
 ss.str(line.substr(8));
 string rs;
 ss >> rs;
-cout << "Requested Resource: " << rs << endl;
 
 if(rs.compare("/favicon.ico")==0){
 	return;
 }
 
-//determine content-type
-string extension = rs.substr(rs.find_last_of("."));
-transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-string contentType="";
-
-cout << "EXTENSION: " << extension << endl;
-if(extension.compare(".html")==0){
-	contentType = "text/html";
-	cout << "HTML extension" << endl;
-}
-else if(extension.compare(".jpg")==0 || extension.compare(".jpeg")==0){
-	contentType = "image/jpg";
-}
-else if(extension.compare(".gif")==0){
-	contentType = "image/gif";
-}
-else{
-	contentType = "text/plain";
-}
 
 //for now, hardcode the prepended path into rs
 string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
 rs = prepended + rs;
-cout << "With prepended path: " << rs << endl;
 
 //determine file type of requested resource
 struct stat filestat;
@@ -115,8 +91,25 @@ if(stat(rs.c_str(), &filestat)){
 	//with 404 headers and body
 }
 if(S_ISREG(filestat.st_mode)){
-	cout << rs << " is a regular file" << endl;
-	cout << "file size = " << filestat.st_size  << endl;
+
+//determine content-type
+string extension = rs.substr(rs.find_last_of("."));
+transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+string contentType="";
+
+if(extension.compare(".html")==0){
+        contentType = "text/html";
+}
+else if(extension.compare(".jpg")==0 || extension.compare(".jpeg")==0){
+        contentType = "image/jpg";
+}
+else if(extension.compare(".gif")==0){
+        contentType = "image/gif";
+}
+else{
+        contentType = "text/plain";
+}
+
 	//format headers
 	//read file
 	//send it to client
@@ -150,19 +143,46 @@ if(S_ISREG(filestat.st_mode)){
 if(S_ISDIR(filestat.st_mode)){
 	cout << rs << " is a directory" << endl;
 	//look for index.html (run stat function again)
-	if(stat((rs+"/index.html").c_str(), &filestat)){
-	//index doesn't exist!
-	//read dir listing
-	//generate html
-	//send appropriate headers
-	//and body to client
-}
-else{
-	cout << "Found index.html in directory" << endl;
-	//format headers
-	//read index.html
-	//send all to client
-}
+	if(stat((rs+"index.html").c_str(), &filestat)){
+		//index doesn't exist!
+		//read dir listing
+		//generate html
+		//send appropriate headers
+		//and body to client
+	}
+	else{
+		cout << "Found index.html in directory" << endl;
+		//format headers
+		//read index.html
+		//send all to client
+		//send it to client
+	rs = rs+"/index.html";
+        char pBuffer[BUFFER_SIZE];
+        memset(pBuffer, 0, sizeof(pBuffer));
+        int file_size = get_file_size(rs);
+        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Lengh: %d\r\n\r\n", file_size);
+
+        int write_result = write(hSocket, pBuffer, strlen(pBuffer));
+        if(write_result==SOCKET_ERROR){
+                cout << "Error writing" << endl;
+                exit(0);
+        }
+        FILE* fp = fopen(rs.c_str(), "r");
+
+        char* buffer = (char*)malloc(file_size);
+
+        int file_read_result = fread(buffer, file_size, 1, fp);
+        if(file_read_result == -1){
+                cout << "Error reading from file" << endl;
+                exit(0);
+        }
+
+        write_result = write(hSocket, buffer, file_size);
+        if(write_result==SOCKET_ERROR){
+                cout << "Error writing" << endl;
+                exit(0);
+        }
+	}	
 }
 
 
