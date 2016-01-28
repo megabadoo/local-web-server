@@ -10,11 +10,15 @@
 #include <vector>
 #include <fstream>
 #include <sys/stat.h>
+#include <iostream>
+#include <sstream>
 
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         10000
 #define MESSAGE             "This is the message I'm sending back and forth"
 #define QUEUE_SIZE          10000
+
+using namespace std;
 
 string get_file_contents(const char* filename){
 	ifstream in(filename, std::ios::in | std::ios::binary);
@@ -73,6 +77,11 @@ string rs;
 ss >> rs;
 cout << "Requested Resource: " << rs << endl;
 
+//for now, hardcode the prepended path into rs
+string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
+rs = prepended + rs;
+cout << "With prepended path: " << rs << endl;
+
 //determine file type of requested resource
 struct stat filestat;
 
@@ -87,7 +96,23 @@ if(S_ISREG(filestat.st_mode)){
 	//format headers
 	//read file
 	//send it to client
+  /*  	 memset(pBuffer, 0, sizeof(pBuffer));
+//change to path input variable + requested resource (prepend command-line param to the GET request resource i.e. "/foo.html"
+        //for now hardcoded
+	int file_size = get_file_size("maxresdefault.jpg");
+        sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/jpg\r\nContent-Lengh: %d\r\n\r\n", file_size);
+//alwasys check system calls
+        write(hSocket, pBuffer, strlen(pBuffer));
+        FILE* fp = fopen("maxresdefault.jpg", "r");
+
+        char *buffer = (char*)malloc(file_size);
+        fread(buffer, file_size, 1, fp);
+//check above
+
+        write(hSocket, buffer, file_size);
+*/
 }
+
 if(S_ISDIR(filestat.st_mode)){
 	cout << rs << " is a directory" << endl;
 	//look for index.html (run stat function again)
@@ -117,7 +142,7 @@ else{
 	char pBuffer[BUFFER_SIZE];
 	memset(pBuffer, 0, sizeof(pBuffer));
 //change to path input variable + requested resource (prepend command-line param to the GET request resource i.e. "/foo.html"
-	int file_size = get_fiel_size("maxresdefault.jpg");
+	int file_size = get_file_size("maxresdefault.jpg");
 	sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/jpg\r\nContent-Lengh: %d\r\n\r\n", file_size);
 //alwasys check system calls
 	write(hSocket, pBuffer, strlen(pBuffer));
@@ -130,7 +155,7 @@ else{
 	write(hSocket, buffer, file_size);
 
 
-dfd
+
 
 	std::string msg = ss.str();
 	std::cout << "write" << std:: endl;
@@ -148,7 +173,7 @@ dfd
 
 
 
-
+//	shutdown(hSocket, SHUT_RDWR);
     printf("\nClosing the socket");
         // close socket 
         if(close(hSocket) == SOCKET_ERROR)
