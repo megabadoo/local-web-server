@@ -78,7 +78,7 @@ if(rs.compare("/favicon.ico")==0){
 	return;
 }
 
-
+string original_rs = rs;
 //for now, hardcode the prepended path into rs
 string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
 rs = prepended + rs;
@@ -169,6 +169,9 @@ else{
 
 else if(S_ISDIR(filestat.st_mode)){
 	cout << rs << " is a directory" << endl;
+	if(rs.find_last_of("/")!=rs.length()-1)
+		rs += "/";
+	cout << rs << " is a directory with a slash" << endl;
 	//look for index.html (run stat function again)
 	if(stat((rs+"index.html").c_str(), &filestat)){
 		//index doesn't exist!
@@ -182,16 +185,22 @@ else if(S_ISDIR(filestat.st_mode)){
  	 struct dirent *dp;
 
   	dirp = opendir(rs.c_str());
-        string msg = "<html><body>";
- 	 while ((dp = readdir(dirp)) != NULL){
-        //prepend requested resource
-        msg+="<a href=\"";
+	string msg = "<html><body><h1>" + original_rs + "</h1><ul>";
+ 	int x=0; 
+	while ((dp = readdir(dirp)) != NULL){
+        if(x>1){
+	//prepend requested resource
+        msg+="<li><a href=\"";
+	msg += original_rs + "/";
 	msg+= dp->d_name;
 	msg+= "\">";
 	msg+=dp->d_name;
-	msg+="</a>\n";
-        msg+="</body></html>";
+	msg+="</a></li>\n";
+	}
+	x++;
 }
+        msg+="</ul></body></html>";
+
   	(void)closedir(dirp);
 	
 	int i = msg.length();
@@ -333,6 +342,10 @@ int main(int argc, char* argv[])
     Address.sin_port=htons(nHostPort);
     Address.sin_family=AF_INET;
 
+
+int optval = 1;
+setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
     printf("\nBinding to port %d",nHostPort);
 
     /* bind to a port */
@@ -363,6 +376,7 @@ int main(int argc, char* argv[])
         printf("\nCould not listen\n");
         return 0;
     }
+
 
     for(;;)
     {
