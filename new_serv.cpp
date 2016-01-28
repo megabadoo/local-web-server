@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <sstream>
+#include <dirent.h>
 
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         10000
@@ -175,6 +176,37 @@ else if(S_ISDIR(filestat.st_mode)){
 		//generate html
 		//send appropriate headers
 		//and body to client
+
+	int len;
+  	DIR *dirp;
+ 	 struct dirent *dp;
+
+  	dirp = opendir(rs.c_str());
+        string msg = "<html><body>";
+ 	 while ((dp = readdir(dirp)) != NULL){
+        //prepend requested resource
+        msg+="<a href=\"";
+	msg+= dp->d_name;
+	msg+= "\">";
+	msg+=dp->d_name;
+	msg+="</a>\n";
+        msg+="</body></html>";
+}
+  	(void)closedir(dirp);
+	
+	int i = msg.length();
+	string content_length = to_string(i);
+
+	msg = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + content_length + "\r\n\r\n" + msg;
+
+	cout << "MESSAGE IS: " << msg << endl;
+
+	int write_result = write(hSocket, msg.c_str(), msg.length());
+	if(write_result == -1){
+		cout << "Error writing directory" << endl;
+		exit(0);
+	}
+
 	}
 	else{
 		cout << "Found index.html in directory" << endl;
