@@ -96,21 +96,20 @@ if(S_ISREG(filestat.st_mode)){
 	//format headers
 	//read file
 	//send it to client
-  /*  	 memset(pBuffer, 0, sizeof(pBuffer));
-//change to path input variable + requested resource (prepend command-line param to the GET request resource i.e. "/foo.html"
-        //for now hardcoded
-	int file_size = get_file_size("maxresdefault.jpg");
+	char pBuffer[BUFFER_SIZE];
+   	 memset(pBuffer, 0, sizeof(pBuffer));
+	int file_size = get_file_size(rs);
         sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/jpg\r\nContent-Lengh: %d\r\n\r\n", file_size);
 //alwasys check system calls
         write(hSocket, pBuffer, strlen(pBuffer));
-        FILE* fp = fopen("maxresdefault.jpg", "r");
+        FILE* fp = fopen(rs.c_str(), "r");
 
-        char *buffer = (char*)malloc(file_size);
+        char* buffer = (char*)malloc(file_size);
         fread(buffer, file_size, 1, fp);
 //check above
 
         write(hSocket, buffer, file_size);
-*/
+
 }
 
 if(S_ISDIR(filestat.st_mode)){
