@@ -77,7 +77,9 @@ string rs;
 ss >> rs;
 cout << "Requested Resource: " << rs << endl;
 
-
+if(rs.compare("/favicon.ico")==0){
+	return;
+}
 
 //for now, hardcode the prepended path into rs
 string prepended = "/Users/meganarnell/Documents/CS360 Internet Programming/local-web-server/testDir";
