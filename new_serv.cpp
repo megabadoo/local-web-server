@@ -13,6 +13,10 @@
 #include <iostream>
 #include <sstream>
 #include <dirent.h>
+#include <algorithm>
+#include <queue>
+#include <pthread.h>
+#include <semaphore.h>
 
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         10000
@@ -20,6 +24,17 @@
 #define QUEUE_SIZE          10000
 
 using namespace std;
+std::queue<int> work;
+sem_t work_to_do;
+sem_t space_on_q;
+sem_t mutex1;
+
+struct thread_params {
+        long thread_id;
+        std::string dir;
+	
+	thread_params():thread_id(0),dir(""){};
+};
 
 string get_file_contents(const char* filename){
 	ifstream in(filename, std::ios::in | std::ios::binary);
@@ -47,7 +62,27 @@ int get_file_size(string path){
 	return filestat.st_size;
 }
 
-void serve(int hSocket, string dir){
+void* serve(void* arg){
+	void* myVoidPtr;	
+	        //long thread_id = long(arg);
+        struct thread_params* tp = (struct thread_params*) arg;
+        std::cout << "I'm thread " << tp->thread_id << std::endl;
+        std::cout << "\t" << tp->dir << std::endl;
+        
+	string dir = tp->dir;
+	
+//	for(;;){
+
+        sem_wait(&work_to_do);
+        sem_wait(&mutex1);
+
+        int hSocket = work.front();
+        work.pop();
+
+        std::cout << tp->thread_id << " working on " << hSocket << std::endl;
+
+        sem_post(&mutex1);
+        sem_post(&space_on_q);
 
 	string line;
 	vector<char*> headers;
@@ -75,7 +110,7 @@ string rs;
 ss >> rs;
 
 if(rs.compare("/favicon.ico")==0){
-	return;
+	return myVoidPtr;
 }
 
 string original_rs = rs;
@@ -187,9 +222,7 @@ else if(S_ISDIR(filestat.st_mode)){
 
   	dirp = opendir(rs.c_str());
 	string msg = "<html><body><h1>" + original_rs + "</h1><ul>";
- 	int x=0; 
 	while ((dp = readdir(dirp)) != NULL){
-        if(x>1){
 	//prepend requested resource
         msg+="<li><a href=\"";
 	msg += original_rs;
@@ -197,8 +230,6 @@ else if(S_ISDIR(filestat.st_mode)){
 	msg+= "\">";
 	msg+=dp->d_name;
 	msg+="</a></li>\n";
-	}
-	x++;
 }
         msg+="</ul></body></html>";
 
@@ -255,46 +286,6 @@ else if(S_ISDIR(filestat.st_mode)){
 
 
 
-
-
-
-
-//
-/*
-	char pBuffer[BUFFER_SIZE];
-	memset(pBuffer, 0, sizeof(pBuffer));
-//change to path input variable + requested resource (prepend command-line param to the GET request resource i.e. "/foo.html"
-	int file_size = get_file_size("maxresdefault.jpg");
-	sprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: image/jpg\r\nContent-Lengh: %d\r\n\r\n", file_size);
-//alwasys check system calls
-	write(hSocket, pBuffer, strlen(pBuffer));
-	FILE* fp = fopen("maxresdefault.jpg", "r");
-	
-	char *buffer = (char*)malloc(file_size); 
-	fread(buffer, file_size, 1, fp);
-//check above
-	
-	write(hSocket, buffer, file_size);
-
-
-
-
-	std::string msg = ss.str();
-	std::cout << "write" << std:: endl;
-//	write(hSocket, msg.c_str(), msg.size());
-	std::cout << "finished writing" << std:: endl;
-
-
-	shutdown(hSocket, SHUT-RDWR);
-	close(hSocket);*/
-//	string msg = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 8\r\n\r\nHeyGuys!";
-        /* number returned by read() and write() is the number of bytes
-        ** read or written, with -1 being that an error occured
-        ** write what we received back to the server */
-  //      write(hSocket,msg.c_str(),msg.length());
-
-
-
 //	shutdown(hSocket, SHUT_RDWR);
     printf("\nClosing the socket");
         // close socket 
@@ -305,6 +296,9 @@ else if(S_ISDIR(filestat.st_mode)){
         }
 
 
+
+//}
+	return myVoidPtr;
 }
 
 int main(int argc, char* argv[])
@@ -316,17 +310,57 @@ int main(int argc, char* argv[])
     char pBuffer[BUFFER_SIZE];
     int nHostPort;
 	string dir;
+	   int queue_size = 1;
+        if(sem_init(&space_on_q, 0, queue_size)!=0){
+		cout << "Error initializaing semaphore space_on_q" << endl;
+		exit(0);
+	}
+        if(sem_init(&work_to_do, 0, 0)!=0){
+		cout << "Error initializing semaphore work_to_do" << endl;
+		exit(0);
+	}
+        if(sem_init(&mutex1, 0, 1)!=0){
+		cout << "Error initializing semaphore mutex1" << endl;
+		exit(0);
+	}
+
+        int num_threads = 1;
+        std::cout << "threads hello!" << std::endl;
+        pthread_t thread;
+
+    
+
 
     if(argc < 3)
       {
         printf("\nUsage: server host-port directory\n");
-        return 0;
+        exit(0);
       }
     else
       {
         nHostPort=atoi(argv[1]);
 	dir = argv[2];
       }
+            struct thread_params* tp=new thread_params();
+     
+    for(long i =0; i < num_threads; i++){
+
+               tp->thread_id = i;
+                tp->dir = dir;
+                int ret_val = pthread_create(&thread,
+                NULL,
+                serve,
+		(void*) tp);
+
+		if(ret_val!=0){
+			cout << "Error forming thread" << endl;
+		}
+    }
+
+cout << "ID: " << tp->thread_id << endl;
+cout << "DIR: " << tp->dir << endl;
+
+
 
     printf("\nStarting server");
 
@@ -337,7 +371,7 @@ int main(int argc, char* argv[])
     if(hServerSocket == SOCKET_ERROR)
     {
         printf("\nCould not make a socket\n");
-        return 0;
+        exit(0);
     }
 
     /* fill address struct */
@@ -381,11 +415,32 @@ setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
     }
 
 
-    for(;;)
-    {
+  for(int i=0;;i++){
+        
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
         hSocket=accept(hServerSocket,(struct sockaddr*)&Address,(socklen_t *)&nAddressSize);
-	serve(hSocket, dir);
+	if(hSocket == SOCKET_ERROR){
+		cout << "Could not connect to socket" << endl;
+		exit(0);
 	}
+
+//	serve(tp);
+	
+	cout << "tp->thread_id: " << tp->thread_id << endl;
+	cout << "tp->dir: " << tp->dir << endl;
+        //accept (returns an int, push that int on the queue)
+                sem_wait(&space_on_q);
+                sem_wait(&mutex1);
+
+                sleep(1);
+                work.push(hSocket);
+                std::cout << "pushed " << hSocket << std::endl;
+
+                sem_post(&mutex1);
+                sem_post(&work_to_do);
+        }
+
 }
+
+
