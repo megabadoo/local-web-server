@@ -309,8 +309,9 @@ int main(int argc, char* argv[])
     int nAddressSize=sizeof(struct sockaddr_in);
     char pBuffer[BUFFER_SIZE];
     int nHostPort;
+	int num_threads;
 	string dir;
-	   int queue_size = 1;
+	   int queue_size = 20;
         if(sem_init(&space_on_q, 0, queue_size)!=0){
 		cout << "Error initializaing semaphore space_on_q" << endl;
 		exit(0);
@@ -324,10 +325,6 @@ int main(int argc, char* argv[])
 		exit(0);
 	}
 
-        int num_threads = 1;
-        std::cout << "threads hello!" << std::endl;
-        pthread_t thread;
-
     
 
 
@@ -339,15 +336,23 @@ int main(int argc, char* argv[])
     else
       {
         nHostPort=atoi(argv[1]);
-	dir = argv[2];
+	dir = argv[3];
+	num_threads = atoi(argv[2]);
       }
-            struct thread_params* tp=new thread_params();
-     
-    for(long i =0; i < num_threads; i++){
 
+        std::cout << "threads hello!" << std::endl;
+        pthread_t threads[num_threads];
+
+
+
+
+    
+    for(long i =0; i < num_threads; i++){
+        struct thread_params* tp=new thread_params();
+     
                tp->thread_id = i;
                 tp->dir = dir;
-                int ret_val = pthread_create(&thread,
+                int ret_val = pthread_create(&threads[i],
                 NULL,
                 serve,
 		(void*) tp);
@@ -357,8 +362,8 @@ int main(int argc, char* argv[])
 		}
     }
 
-cout << "ID: " << tp->thread_id << endl;
-cout << "DIR: " << tp->dir << endl;
+//cout << "ID: " << tp->thread_id << endl;
+//cout << "DIR: " << tp->dir << endl;
 
 
 
@@ -427,8 +432,8 @@ setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 //	serve(tp);
 	
-	cout << "tp->thread_id: " << tp->thread_id << endl;
-	cout << "tp->dir: " << tp->dir << endl;
+//	cout << "tp->thread_id: " << tp->thread_id << endl;
+//	cout << "tp->dir: " << tp->dir << endl;
         //accept (returns an int, push that int on the queue)
                 sem_wait(&space_on_q);
                 sem_wait(&mutex1);
