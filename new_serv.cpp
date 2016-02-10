@@ -17,6 +17,8 @@
 #include <queue>
 #include <pthread.h>
 #include <semaphore.h>
+#include <sys/signal.h>
+
 
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         10000
@@ -28,12 +30,12 @@ std::queue<int> work;
 sem_t work_to_do;
 sem_t space_on_q;
 sem_t mutex1;
+void handler (int status);
+
 
 struct thread_params {
         long thread_id;
-        std::string dir;
-	
-	thread_params():thread_id(0),dir(""){};
+	char* dir;	
 };
 
 string get_file_contents(const char* filename){
@@ -67,11 +69,11 @@ void* serve(void* arg){
 	        //long thread_id = long(arg);
         struct thread_params* tp = (struct thread_params*) arg;
         std::cout << "I'm thread " << tp->thread_id << std::endl;
-        std::cout << "\t" << tp->dir << std::endl;
-        
+      //
 	string dir = tp->dir;
-	
-//	for(;;){
+	  std::cout << "\t" << tp->dir << std::endl;
+        
+	for(;;){
 
         sem_wait(&work_to_do);
         sem_wait(&mutex1);
@@ -105,7 +107,11 @@ void* serve(void* arg){
 //store requested resource (file path)
 //in variable rs
 stringstream ss;
-ss.str(line.substr(8));
+if(line.length()>8){
+ss.str(line.substr(8));}
+else{
+	return myVoidPtr;
+}
 string rs;
 ss >> rs;
 
@@ -297,7 +303,7 @@ else if(S_ISDIR(filestat.st_mode)){
 
 
 
-//}
+}
 	return myVoidPtr;
 }
 
@@ -325,7 +331,17 @@ int main(int argc, char* argv[])
 		exit(0);
 	}
 
-    
+         // First set up the signal handler
+     //   struct sigaction sigold, signew;
+
+       // signew.sa_handler=handler;
+       // sigemptyset(&signew.sa_mask);
+      //  sigaddset(&signew.sa_mask,SIGINT);
+       // signew.sa_flags = SA_RESTART;
+       // sigaction(SIGINT,&signew,&sigold);
+       // sigaction(SIGHUP,&signew,&sigold);
+       // sigaction(SIGPIPE,&signew,&sigold);
+
 
 
     if(argc < 3)
@@ -345,26 +361,22 @@ int main(int argc, char* argv[])
 
 
 
-
+	thread_params **tp=(thread_params**)malloc(num_threads*(sizeof(struct thread_params)));
     
     for(long i =0; i < num_threads; i++){
-        struct thread_params* tp=new thread_params();
-     
-               tp->thread_id = i;
-                tp->dir = dir;
+        tp[i]= (struct thread_params*) malloc(sizeof(struct thread_params));
+		tp[i]->dir = (char*)malloc(sizeof(char)*(strlen(dir.c_str()+1))); 
+               tp[i]->thread_id = i;
+                tp[i]->dir = (char*)dir.c_str();
                 int ret_val = pthread_create(&threads[i],
                 NULL,
                 serve,
-		(void*) tp);
+		(void*) tp[i]);
 
 		if(ret_val!=0){
 			cout << "Error forming thread" << endl;
 		}
-    }
-
-//cout << "ID: " << tp->thread_id << endl;
-//cout << "DIR: " << tp->dir << endl;
-
+}
 
 
     printf("\nStarting server");
@@ -383,12 +395,14 @@ int main(int argc, char* argv[])
     Address.sin_addr.s_addr=INADDR_ANY;
     Address.sin_port=htons(nHostPort);
     Address.sin_family=AF_INET;
+	
+	int optval = 1;
 
+	setsockopt (hServerSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-int optval = 1;
-setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
     printf("\nBinding to port %d",nHostPort);
+
 
     /* bind to a port */
     if(bind(hServerSocket,(struct sockaddr*)&Address,sizeof(Address)) 
@@ -430,15 +444,10 @@ setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 		exit(0);
 	}
 
-//	serve(tp);
-	
-//	cout << "tp->thread_id: " << tp->thread_id << endl;
-//	cout << "tp->dir: " << tp->dir << endl;
         //accept (returns an int, push that int on the queue)
                 sem_wait(&space_on_q);
                 sem_wait(&mutex1);
 
-                sleep(1);
                 work.push(hSocket);
                 std::cout << "pushed " << hSocket << std::endl;
 
@@ -446,6 +455,23 @@ setsockopt (hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
                 sem_post(&work_to_do);
         }
 
+	for(int x=0; x<num_threads; x++){
+		pthread_join(threads[x],NULL);
+	}
+
+
+
+	for(int i =0; i<num_threads; i++){
+		free(tp[i]->dir);
+	}
+	free(tp);
+    
 }
 
+
+
+void handler (int status)
+{
+        printf("received signal %d\n",status);
+}
 
